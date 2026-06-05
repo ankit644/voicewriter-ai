@@ -138,13 +138,13 @@ check( 'user as second message', 'user' === $body['messages'][1]['role'] && 'USE
 check( 'model passed through', 'gpt-4o-mini' === $body['model'] );
 
 echo "\n== Google (Gemini) ==\n";
-set_settings( 'gemini', 'AIza-test', 'gemini-1.5-flash' );
+set_settings( 'gemini', 'AIza-test', 'gemini-2.5-flash' );
 set_response( 200, array( 'candidates' => array( array( 'content' => array( 'parts' => array( array( 'text' => 'Hello from Gemini.' ) ) ) ) ) ) );
 $out = $client->complete( 'SYS', 'USER', 1000 );
 $req = $GLOBALS['vw_last_request'];
 $body = json_decode( $req['args']['body'], true );
 check( 'returns text', 'Hello from Gemini.' === $out );
-check( 'endpoint targets model', false !== strpos( $req['url'], 'models/gemini-1.5-flash:generateContent' ) );
+check( 'endpoint targets model', false !== strpos( $req['url'], 'models/gemini-2.5-flash:generateContent' ) );
 check( 'key in query string', false !== strpos( $req['url'], 'key=AIza-test' ) );
 check( 'system_instruction set', 'SYS' === $body['system_instruction']['parts'][0]['text'] );
 check( 'user content set', 'USER' === $body['contents'][0]['parts'][0]['text'] );

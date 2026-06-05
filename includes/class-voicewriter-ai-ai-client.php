@@ -41,8 +41,8 @@ class Voicewriter_AI_AI_Client {
 			),
 			'gemini'    => array(
 				'label'   => __( 'Google (Gemini) — has a free tier', 'voicewriter-ai' ),
-				'default' => 'gemini-1.5-flash',
-				'models'  => array( 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash' ),
+				'default' => 'gemini-2.5-flash',
+				'models'  => array( 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite' ),
 				'keys_url' => 'https://aistudio.google.com/app/apikey',
 			),
 		);
