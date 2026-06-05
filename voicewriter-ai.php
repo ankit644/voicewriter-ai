@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       VoiceWriter AI
  * Plugin URI:        https://github.com/ankit644/voicewriter-ai
- * Description:       Learns your site's own writing voice from your existing posts, then generates on-brand drafts and social repurposes. Bring your own Anthropic Claude API key (BYOK) — no monthly fees, your data stays in your hands.
+ * Description:       Learns your site's own writing voice from your existing posts, then generates on-brand drafts and social repurposes. Bring your own AI key (BYOK) — Claude, ChatGPT, or Gemini. No monthly fees, your data stays in your hands.
  * Version:           1.0.0
  * Requires at least: 6.2
  * Requires PHP:      7.4
@@ -37,7 +37,7 @@ define( 'VOICEWRITER_AI_OPTION_USAGE', 'voicewriter_ai_usage' );
 define( 'VOICEWRITER_AI_FREE_MONTHLY_LIMIT', 5 );
 
 // Load core classes.
-require_once VOICEWRITER_AI_DIR . 'includes/class-voicewriter-ai-claude-client.php';
+require_once VOICEWRITER_AI_DIR . 'includes/class-voicewriter-ai-ai-client.php';
 require_once VOICEWRITER_AI_DIR . 'includes/class-voicewriter-ai-voice-profile.php';
 require_once VOICEWRITER_AI_DIR . 'includes/class-voicewriter-ai-settings.php';
 require_once VOICEWRITER_AI_DIR . 'includes/class-voicewriter-ai-rest.php';
@@ -64,8 +64,9 @@ register_activation_hook(
 			add_option(
 				VOICEWRITER_AI_OPTION_SETTINGS,
 				array(
-					'api_key' => '',
-					'model'   => 'claude-sonnet-4-6',
+					'provider' => 'anthropic',
+					'api_key'  => '',
+					'model'    => 'claude-sonnet-4-6',
 				)
 			);
 		}

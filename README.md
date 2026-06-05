@@ -1,6 +1,6 @@
 # VoiceWriter AI
 
-A free WordPress plugin that learns your site's **own writing voice** from your existing posts, then drafts on-brand content and social repurposes — using **your own** Anthropic Claude API key (BYOK), so there are no monthly fees and your content never touches a third-party server beyond Anthropic itself.
+A free WordPress plugin that learns your site's **own writing voice** from your existing posts, then drafts on-brand content and social repurposes — using **your own** AI key (BYOK) from **Claude, ChatGPT, or Gemini**, so there are no monthly fees and your content never touches a third-party server beyond the AI provider you choose.
 
 > **"Voice" = your site's writing voice/tone, not microphone dictation.**
 
@@ -13,7 +13,7 @@ Generic AI writers all wrap the same models and produce the same generic output.
 - 🧠 **Brand-voice training** — learns tone, rhythm, vocabulary, and structure from your published posts.
 - ✍️ **On-brand draft generation** — type a topic, get a publish-ready draft inserted into the block editor.
 - 🔁 **Repurposing** — turn a draft into a LinkedIn post in the same voice.
-- 🔐 **BYOK** — your Anthropic key, stored only in your DB. No author server, no subscription to run.
+- 🔐 **BYOK, multi-provider** — Claude, ChatGPT, or Gemini (Gemini has a free tier). Your key, stored only in your DB. No author server, no subscription to run.
 
 ## Planned (Pro)
 
@@ -23,13 +23,13 @@ Unlimited generations · multiple voice profiles · X/newsletter/IG repurposing 
 
 - WordPress 6.2+
 - PHP 7.4+
-- An [Anthropic Claude API key](https://console.anthropic.com/settings/keys)
+- An API key from one provider: [Claude](https://console.anthropic.com/settings/keys), [OpenAI](https://platform.openai.com/api-keys), or [Gemini (free tier)](https://aistudio.google.com/app/apikey)
 
 ## Install (local dev)
 
 1. Copy this folder to `wp-content/plugins/voicewriter-ai`.
 2. Activate **VoiceWriter AI** in the Plugins screen.
-3. **Settings → VoiceWriter AI** → paste your Anthropic API key.
+3. **Settings → VoiceWriter AI** → pick a provider and paste your API key.
 4. Open a post → **VoiceWriter AI** sidebar → **Train voice** → **Generate**.
 
 ## Structure
@@ -41,8 +41,8 @@ voicewriter-ai/
 ├── uninstall.php                            # option cleanup on delete
 ├── includes/
 │   ├── class-voicewriter-ai.php             # core: hooks, asset enqueue
-│   ├── class-voicewriter-ai-settings.php    # Settings API page (BYOK key + model)
-│   ├── class-voicewriter-ai-claude-client.php # Anthropic Messages API wrapper
+│   ├── class-voicewriter-ai-settings.php    # Settings API page (provider + BYOK key + model)
+│   ├── class-voicewriter-ai-ai-client.php   # Multi-provider client (Claude / ChatGPT / Gemini)
 │   ├── class-voicewriter-ai-voice-profile.php # the brand-voice trainer (moat)
 │   └── class-voicewriter-ai-rest.php        # /train, /generate, /repurpose
 └── admin/
@@ -52,7 +52,7 @@ voicewriter-ai/
 
 ## WordPress.org compliance
 
-Built to pass manual review: ABSPATH guards, unique `voicewriter_ai_` prefix, sanitized input / escaped output / nonces (REST cookie nonce + capability checks), `$wpdb` not used directly, no remote-loaded assets, GPLv2, and the required external-service (Anthropic) disclosure in `readme.txt`.
+Built to pass manual review: ABSPATH guards, unique `voicewriter_ai_` prefix, sanitized input / escaped output / nonces (REST cookie nonce + capability checks), `$wpdb` not used directly, no remote-loaded assets, GPLv2, and the required external-service disclosures (Anthropic, OpenAI, Google) in `readme.txt`.
 
 > **Note:** GitHub uses this repo; WordPress.org uses its own SVN. `README.md` and `.gitignore` stay in Git only — they are not committed to the WordPress.org SVN `/trunk/`.
 

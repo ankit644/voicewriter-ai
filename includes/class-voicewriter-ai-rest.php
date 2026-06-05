@@ -149,7 +149,7 @@ class Voicewriter_AI_REST {
 			. 'and a closing. Return clean text only — no preamble like "Here is your draft", no markdown code fences.'
 		);
 
-		$client = new Voicewriter_AI_Claude_Client();
+		$client = new Voicewriter_AI_AI_Client();
 		$text   = $client->complete( $system, 'Topic / instruction: ' . $topic, 2500 );
 
 		if ( is_wp_error( $text ) ) {
@@ -202,7 +202,7 @@ class Voicewriter_AI_REST {
 			. 'Return only the post text.'
 		);
 
-		$client = new Voicewriter_AI_Claude_Client();
+		$client = new Voicewriter_AI_AI_Client();
 		$text   = $client->complete( $system, "Blog content:\n\n" . mb_substr( $content, 0, 6000 ), 800 );
 
 		if ( is_wp_error( $text ) ) {

@@ -2,7 +2,7 @@
 /**
  * Admin settings page (Settings > VoiceWriter AI).
  *
- * Stores the BYOK Anthropic API key and the chosen Claude model.
+ * Stores the chosen AI provider, the BYOK API key for it, and the model.
  * Uses the WordPress Settings API, which handles the nonce/referer check
  * for the options.php form submission.
  *
@@ -18,21 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Voicewriter_AI_Settings {
 
-	const PAGE_SLUG  = 'voicewriter-ai';
-	const GROUP      = 'voicewriter_ai_settings_group';
-
-	/**
-	 * Available Claude models offered in the dropdown.
-	 *
-	 * @return array
-	 */
-	private function models() {
-		return array(
-			'claude-opus-4-8'   => __( 'Claude Opus 4.8 (highest quality)', 'voicewriter-ai' ),
-			'claude-sonnet-4-6' => __( 'Claude Sonnet 4.6 (balanced — recommended)', 'voicewriter-ai' ),
-			'claude-haiku-4-5'  => __( 'Claude Haiku 4.5 (fastest, lowest cost)', 'voicewriter-ai' ),
-		);
-	}
+	const PAGE_SLUG = 'voicewriter-ai';
+	const GROUP     = 'voicewriter_ai_settings_group';
 
 	/**
 	 * Register hooks.
@@ -72,8 +59,9 @@ class Voicewriter_AI_Settings {
 				'type'              => 'array',
 				'sanitize_callback' => array( $this, 'sanitize' ),
 				'default'           => array(
-					'api_key' => '',
-					'model'   => 'claude-sonnet-4-6',
+					'provider' => 'anthropic',
+					'api_key'  => '',
+					'model'    => 'claude-sonnet-4-6',
 				),
 			)
 		);
@@ -86,15 +74,19 @@ class Voicewriter_AI_Settings {
 	 * @return array
 	 */
 	public function sanitize( $input ) {
-		$output = array();
+		$providers = Voicewriter_AI_AI_Client::providers();
+		$output    = array();
+
+		$provider           = isset( $input['provider'] ) ? sanitize_key( $input['provider'] ) : 'anthropic';
+		$output['provider'] = isset( $providers[ $provider ] ) ? $provider : 'anthropic';
 
 		$output['api_key'] = isset( $input['api_key'] )
 			? sanitize_text_field( $input['api_key'] )
 			: '';
 
-		$model            = isset( $input['model'] ) ? sanitize_text_field( $input['model'] ) : 'claude-sonnet-4-6';
-		$allowed          = array_keys( $this->models() );
-		$output['model']  = in_array( $model, $allowed, true ) ? $model : 'claude-sonnet-4-6';
+		// Model is free-text (provider model ids change often); fall back to the provider default.
+		$model           = isset( $input['model'] ) ? sanitize_text_field( $input['model'] ) : '';
+		$output['model'] = '' !== $model ? $model : $providers[ $output['provider'] ]['default'];
 
 		return $output;
 	}
@@ -109,9 +101,14 @@ class Voicewriter_AI_Settings {
 			return;
 		}
 
-		$settings = get_option( VOICEWRITER_AI_OPTION_SETTINGS, array() );
-		$api_key  = isset( $settings['api_key'] ) ? $settings['api_key'] : '';
-		$model    = isset( $settings['model'] ) ? $settings['model'] : 'claude-sonnet-4-6';
+		$settings  = get_option( VOICEWRITER_AI_OPTION_SETTINGS, array() );
+		$provider  = isset( $settings['provider'] ) ? $settings['provider'] : 'anthropic';
+		$api_key   = isset( $settings['api_key'] ) ? $settings['api_key'] : '';
+		$model     = isset( $settings['model'] ) ? $settings['model'] : '';
+		$providers = Voicewriter_AI_AI_Client::providers();
+		if ( ! isset( $providers[ $provider ] ) ) {
+			$provider = 'anthropic';
+		}
 
 		$profile      = new Voicewriter_AI_Voice_Profile();
 		$has_voice    = $profile->exists();
@@ -120,7 +117,7 @@ class Voicewriter_AI_Settings {
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'VoiceWriter AI', 'voicewriter-ai' ); ?></h1>
 			<p>
-				<?php echo esc_html__( 'VoiceWriter AI learns your site\'s own writing voice and drafts on-brand content. It uses your own Anthropic Claude API key (BYOK) — nothing is sent to the plugin author.', 'voicewriter-ai' ); ?>
+				<?php echo esc_html__( 'VoiceWriter AI learns your site\'s own writing voice and drafts on-brand content. Bring your own AI key (BYOK) — Claude, ChatGPT, or Gemini. Nothing is sent to the plugin author.', 'voicewriter-ai' ); ?>
 			</p>
 
 			<form action="options.php" method="post">
@@ -128,7 +125,24 @@ class Voicewriter_AI_Settings {
 				<table class="form-table" role="presentation">
 					<tr>
 						<th scope="row">
-							<label for="voicewriter_ai_api_key"><?php echo esc_html__( 'Anthropic API key', 'voicewriter-ai' ); ?></label>
+							<label for="voicewriter_ai_provider"><?php echo esc_html__( 'AI provider', 'voicewriter-ai' ); ?></label>
+						</th>
+						<td>
+							<select id="voicewriter_ai_provider" name="<?php echo esc_attr( VOICEWRITER_AI_OPTION_SETTINGS ); ?>[provider]">
+								<?php foreach ( $providers as $key => $info ) : ?>
+									<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $provider, $key ); ?>>
+										<?php echo esc_html( $info['label'] ); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description">
+								<?php echo esc_html__( 'No paid subscription? Google Gemini offers a free API tier.', 'voicewriter-ai' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="voicewriter_ai_api_key"><?php echo esc_html__( 'API key', 'voicewriter-ai' ); ?></label>
 						</th>
 						<td>
 							<input
@@ -140,13 +154,16 @@ class Voicewriter_AI_Settings {
 								autocomplete="off"
 							/>
 							<p class="description">
-								<?php
-								printf(
-									/* translators: %s: URL to the Anthropic console. */
-									esc_html__( 'Get a key from the %s. Your key is stored only in your site\'s database.', 'voicewriter-ai' ),
-									'<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Anthropic Console', 'voicewriter-ai' ) . '</a>'
-								);
-								?>
+								<?php echo esc_html__( 'Get a key from your provider:', 'voicewriter-ai' ); ?>
+								<?php foreach ( $providers as $key => $info ) : ?>
+									<a class="voicewriter-ai-keylink" data-provider="<?php echo esc_attr( $key ); ?>"
+										href="<?php echo esc_url( $info['keys_url'] ); ?>" target="_blank" rel="noopener noreferrer"
+										style="<?php echo ( $provider === $key ) ? '' : 'display:none;'; ?>">
+										<?php echo esc_html( $info['label'] ); ?>
+									</a>
+								<?php endforeach; ?>
+								<br />
+								<?php echo esc_html__( 'Your key is stored only in your site\'s database.', 'voicewriter-ai' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -155,18 +172,30 @@ class Voicewriter_AI_Settings {
 							<label for="voicewriter_ai_model"><?php echo esc_html__( 'Model', 'voicewriter-ai' ); ?></label>
 						</th>
 						<td>
-							<select id="voicewriter_ai_model" name="<?php echo esc_attr( VOICEWRITER_AI_OPTION_SETTINGS ); ?>[model]">
-								<?php foreach ( $this->models() as $value => $label ) : ?>
-									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $model, $value ); ?>>
-										<?php echo esc_html( $label ); ?>
-									</option>
+							<input
+								type="text"
+								id="voicewriter_ai_model"
+								name="<?php echo esc_attr( VOICEWRITER_AI_OPTION_SETTINGS ); ?>[model]"
+								value="<?php echo esc_attr( $model ); ?>"
+								class="regular-text"
+								list="voicewriter_ai_models"
+								placeholder="<?php echo esc_attr( $providers[ $provider ]['default'] ); ?>"
+							/>
+							<datalist id="voicewriter_ai_models">
+								<?php foreach ( $providers[ $provider ]['models'] as $m ) : ?>
+									<option value="<?php echo esc_attr( $m ); ?>"></option>
 								<?php endforeach; ?>
-							</select>
+							</datalist>
+							<p class="description">
+								<?php echo esc_html__( 'Choose a model offered by your selected provider. Leave blank to use the recommended default.', 'voicewriter-ai' ); ?>
+							</p>
 						</td>
 					</tr>
 				</table>
 				<?php submit_button(); ?>
 			</form>
+
+			<?php $this->print_provider_switcher_script( $providers ); ?>
 
 			<hr />
 
@@ -197,14 +226,61 @@ class Voicewriter_AI_Settings {
 			<p class="description" style="max-width:46em;">
 				<?php
 				printf(
-					/* translators: 1: Anthropic terms URL, 2: Anthropic privacy URL. */
-					esc_html__( 'When you train or generate, the relevant post text and your instructions are sent to Anthropic (Claude) using your API key, in order to produce the result. Review Anthropic\'s %1$s and %2$s.', 'voicewriter-ai' ),
-					'<a href="https://www.anthropic.com/legal/consumer-terms" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Terms', 'voicewriter-ai' ) . '</a>',
-					'<a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Privacy Policy', 'voicewriter-ai' ) . '</a>'
+					/* translators: %s: selected AI provider name. */
+					esc_html__( 'When you train or generate, the relevant post text and your instructions are sent to your selected provider (%s) using your API key, in order to produce the result. Review that provider\'s terms and privacy policy before use.', 'voicewriter-ai' ),
+					esc_html( Voicewriter_AI_AI_Client::provider_label( $provider ) )
 				);
 				?>
 			</p>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Inline script: swap the key link, model suggestions, and placeholder
+	 * when the provider dropdown changes. Data is JSON-encoded and escaped.
+	 *
+	 * @param array $providers Provider config.
+	 * @return void
+	 */
+	private function print_provider_switcher_script( $providers ) {
+		$map = array();
+		foreach ( $providers as $key => $info ) {
+			$map[ $key ] = array(
+				'default' => $info['default'],
+				'models'  => array_values( $info['models'] ),
+			);
+		}
+		?>
+		<script>
+		( function () {
+			var data = <?php echo wp_json_encode( $map ); ?>;
+			var sel = document.getElementById( 'voicewriter_ai_provider' );
+			var modelInput = document.getElementById( 'voicewriter_ai_model' );
+			var datalist = document.getElementById( 'voicewriter_ai_models' );
+			var links = document.querySelectorAll( '.voicewriter-ai-keylink' );
+			if ( ! sel ) { return; }
+			sel.addEventListener( 'change', function () {
+				var p = sel.value;
+				var info = data[ p ];
+				links.forEach( function ( a ) {
+					a.style.display = ( a.getAttribute( 'data-provider' ) === p ) ? '' : 'none';
+				} );
+				if ( info && datalist ) {
+					datalist.innerHTML = '';
+					info.models.forEach( function ( m ) {
+						var o = document.createElement( 'option' );
+						o.value = m;
+						datalist.appendChild( o );
+					} );
+				}
+				if ( info && modelInput ) {
+					modelInput.value = '';
+					modelInput.placeholder = info.default;
+				}
+			} );
+		} )();
+		</script>
 		<?php
 	}
 }

@@ -161,7 +161,7 @@
 			return el(
 				PanelBody,
 				{ title: __( 'VoiceWriter AI', 'voicewriter-ai' ), initialOpen: true },
-				el( 'p', null, __( 'Add your Anthropic Claude API key to get started.', 'voicewriter-ai' ) ),
+				el( 'p', null, __( 'Add your AI provider API key (Claude, ChatGPT, or Gemini) to get started.', 'voicewriter-ai' ) ),
 				el(
 					Button,
 					{ variant: 'primary', href: cfg.settingsUrl },

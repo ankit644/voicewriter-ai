@@ -79,7 +79,7 @@ class Voicewriter_AI_Voice_Profile {
 
 		$user = "Here are sample posts from the site:\n\n" . implode( "\n\n---\n\n", $samples );
 
-		$client  = new Voicewriter_AI_Claude_Client();
+		$client  = new Voicewriter_AI_AI_Client();
 		$summary = $client->complete( $system, $user, 1200 );
 
 		if ( is_wp_error( $summary ) ) {
