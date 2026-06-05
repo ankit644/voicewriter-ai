@@ -1,0 +1,14 @@
+/* VoiceWriter AI — block editor sidebar styles. */
+
+.voicewriter-ai-sidebar .components-panel__body p {
+	color: #50575e;
+	font-size: 13px;
+}
+
+.voicewriter-ai-sidebar .components-button .components-spinner {
+	margin: 0;
+}
+
+.voicewriter-ai-sidebar .components-notice {
+	margin: 0 0 12px;
+}
